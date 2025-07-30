@@ -1,6 +1,7 @@
 [env]
 PROJECT_NAME = '${CARGO_MAKE_CRATE_FS_NAME}'
 WINDOWS_TARGET = 'x86_64-pc-windows-msvc'
+LINUX_WINDOWS_CC_TARGET = 'x86_64-pc-windows-gnu' # for compiling for windows on linux
 WINDOWS_EXE_NAME = '${PROJECT_NAME}-game.exe' # Should match whatever is set in Cargo.toml
 LINUX_TARGET = 'x86_64-unknown-linux-gnu'
 LINUX_EXE_NAME = '${PROJECT_NAME}-game'
@@ -154,12 +155,24 @@ run_task = 'prepare-release-dir'
 command = 'cargo'
 args = ['build', '--release', '--target', '${WINDOWS_TARGET}']
 
+[tasks.compile-linux2windows]
+command = 'cargo'
+args = ['build', '--release', '--target', '${LINUX_WINDOWS_CC_TARGET}']
+
+
 [tasks.distrib-windows]
 env = { 'PLATFORM' = 'windows' }
 dependencies = ['prepare-release-dir-windows', 'compile-windows','copy_assets_windows']
 script_runner = '@duckscript'
 script = '''
 cp target/${WINDOWS_TARGET}/release/${WINDOWS_EXE_NAME} release/${PLATFORM}/${WINDOWS_EXE_NAME}
+'''
+[tasks.distrib-linux2windows]
+env = { 'PLATFORM' = 'windows' }
+dependencies = ['prepare-release-dir-windows', 'compile-linux2windows','copy_assets_windows']
+script_runner = '@duckscript'
+script = '''
+cp target/${LINUX_WINDOWS_CC_TARGET}/release/${WINDOWS_EXE_NAME} release/${PLATFORM}/${WINDOWS_EXE_NAME}
 '''
 
 [tasks.zip-windows]
@@ -170,6 +183,19 @@ run_task = 'zip-platform'
 [tasks.publish-windows]
 env = { 'PLATFORM' = 'windows' }
 dependencies = ['distrib-windows']
+condition = { env_set = ['BUTLER_EXE'] }
+script_runner = '@duckscript'
+script = '''
+exec ${BUTLER_EXE} push release/windows ${ITCH_USER}/${ITCH_GAME}:windows --userversion ${CARGO_MAKE_PROJECT_VERSION}
+'''
+[tasks.zip-linux2windows]
+env = { 'PLATFORM' = 'windows' }
+dependencies = ['distrib-linux2windows']
+run_task = 'zip-platform'
+
+[tasks.publish-linux2windows]
+env = { 'PLATFORM' = 'windows' }
+dependencies = ['distrib-linux2windows']
 condition = { env_set = ['BUTLER_EXE'] }
 script_runner = '@duckscript'
 script = '''
@@ -202,6 +228,12 @@ condition = { env_set = ['PLATFORM'] }
 dependencies = ['distrib-windows']
 script = '''
 start release/${PLATFORM}/${WINDOWS_EXE_NAME}
+'''
+[tasks.run-linux2windows]
+condition = { env_set = ['PLATFORM'] }
+dependencies = ['distrib-linux2windows']
+script = '''
+wine release/${PLATFORM}/${WINDOWS_EXE_NAME}
 '''
 [tasks.zip-linux]
 env = { 'PLATFORM' = 'linux' }
