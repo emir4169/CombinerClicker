@@ -14,8 +14,7 @@ mkdir release/${PLATFORM}
 mkdir release/${PLATFORM}/assets
 '''
 
-[tasks.zip-platform]
-condition = { env_set = ['PLATFORM'] }
+
 
 [tasks.copy_assets]
 condition = { env_set = ['PLATFORM'] }
@@ -26,10 +25,13 @@ cp assets/game/embedded/* release/${PLATFORM}/assets/ -r
 [tasks.copy_assets_linux]
 env = { 'PLATFORM' = 'linux' }
 run_task = 'copy_assets'
+
 [tasks.copy_assets_windows]
 env = { 'PLATFORM' = 'windows' }
 run_task = 'copy_assets'
 
+[tasks.zip-platform]
+condition = { env_set = ['PLATFORM'] }
 # TODO: Use something more lightweight here to zip the files
 script_runner = '@rust'
 script = '''
