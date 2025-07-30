@@ -13,10 +13,10 @@ path = "src/desktop_main.rs"
 
 # Audio formats should be enabled only in bevy_kira_audio
 [dependencies.bevy]
-version = "0.9"
+version = "0.10"
 default-features = false
 features = [
-    "render",
+    #"render",
     "bevy_winit",
     "png",
     "x11",
