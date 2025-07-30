@@ -1,8 +1,9 @@
 [env]
 PROJECT_NAME = '${CARGO_MAKE_CRATE_FS_NAME}'
-WINDOWS_TARGET = 'x86_64-pc-windows-msvc'
-WINDOWS_EXE_NAME = '${PROJECT_NAME}-windows.exe' # Should match whatever is set in Cargo.toml
-
+WINDOWS_TARGET = 'x86_64-pc-windows-gnu'
+WINDOWS_EXE_NAME = '${PROJECT_NAME}-game.exe' # Should match whatever is set in Cargo.toml
+LINUX_TARGET = 'x86_64-unknown-linux-gnu'
+LINUX_EXE_NAME = '${PROJECT_NAME}-game'
 
 [tasks.prepare-release-dir]
 condition = { env_set = ['PLATFORM'] }
@@ -10,10 +11,25 @@ script_runner = '@duckscript'
 script = '''
 rm -r release/${PLATFORM}
 mkdir release/${PLATFORM}
+mkdir release/${PLATFORM}/assets
 '''
 
 [tasks.zip-platform]
 condition = { env_set = ['PLATFORM'] }
+
+[tasks.copy_assets]
+condition = { env_set = ['PLATFORM'] }
+script_runner = "@shell"
+script = '''
+cp assets/game/embedded/* release/${PLATFORM}/assets/ -r
+'''
+[tasks.copy_assets_linux]
+env = { 'PLATFORM' = 'linux' }
+run_task = 'copy_assets'
+[tasks.copy_assets_windows]
+env = { 'PLATFORM' = 'windows' }
+run_task = 'copy_assets'
+
 # TODO: Use something more lightweight here to zip the files
 script_runner = '@rust'
 script = '''
@@ -96,7 +112,7 @@ run_task = 'prepare-release-dir'
 [tasks.compile-web]
 command = 'wasm-pack'
 args = ['build', '--target', 'web']
-install_crate = { crate_name = 'wasm-pack', test_arg = '--help' }
+#install_crate = { crate_name = 'wasm-pack', test_arg = '--help' }
 
 [tasks.distrib-web]
 env = { 'PLATFORM' = 'web' }
@@ -138,7 +154,7 @@ args = ['build', '--release', '--target', '${WINDOWS_TARGET}']
 
 [tasks.distrib-windows]
 env = { 'PLATFORM' = 'windows' }
-dependencies = ['prepare-release-dir-windows', 'compile-windows']
+dependencies = ['prepare-release-dir-windows', 'compile-windows','copy_assets_windows']
 script_runner = '@duckscript'
 script = '''
 cp target/${WINDOWS_TARGET}/release/${WINDOWS_EXE_NAME} release/${PLATFORM}/${WINDOWS_EXE_NAME}
@@ -158,13 +174,45 @@ script = '''
 exec ${BUTLER_EXE} push release/windows ${ITCH_USER}/${ITCH_GAME}:windows --userversion ${CARGO_MAKE_PROJECT_VERSION}
 '''
 
+[tasks.prepare-release-dir-linux]
+env = { 'PLATFORM' = 'linux' }
+run_task = 'prepare-release-dir'
+
+[tasks.compile-linux]
+command = 'cargo'
+args = ['build', '--release', '--target', '${LINUX_TARGET}']
+
+[tasks.distrib-linux]
+env = { 'PLATFORM' = 'linux' }
+dependencies = ['prepare-release-dir-linux', 'compile-linux', 'copy_assets_linux']
+script_runner = '@duckscript'
+script = '''
+cp target/${LINUX_TARGET}/release/${LINUX_EXE_NAME} release/${PLATFORM}/${LINUX_EXE_NAME}
+'''
+[tasks.run-linux]
+condition = { env_set = ['PLATFORM'] }
+dependencies = ['distrib-linux']
+script = '''
+release/${PLATFORM}/${LINUX_EXE_NAME}
+'''
+[tasks.run-windows]
+condition = { env_set = ['PLATFORM'] }
+dependencies = ['distrib-windows']
+script = '''
+start release/${PLATFORM}/${WINDOWS_EXE_NAME}
+'''
+[tasks.zip-linux]
+env = { 'PLATFORM' = 'linux' }
+dependencies = ['distrib-linux']
+run_task = 'zip-platform'
+
 [tasks.distrib]
-description = 'Builds Web and Windows versions and places them into the release directory'
-run_task = { name = ['distrib-web', 'distrib-windows'] }
+description = 'Builds Web, Windows and Linux versions and places them into the release directory'
+run_task = { name = ['distrib-web', 'distrib-windows', 'distrib-linux'] }
 
 [tasks.zip]
-description = 'Creates a ZIP archive containing both Web and Windows builds'
-run_task = { name = ['zip-web', 'zip-windows'] }
+description = 'Creates a ZIP archive containing all three builds'
+run_task = { name = ['zip-web', 'zip-windows', 'zip-linux'] }
 
 [tasks.publish]
 env_files = [ './butler.env' ]

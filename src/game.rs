@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
-use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_kira_audio::AudioPlugin;
 use bevy_ninepatch::NinePatchPlugin;
 use bevy_tweening::TweeningPlugin;
@@ -28,8 +27,11 @@ pub fn run(app: &mut App) {
                 ..default()
             })
             .build()
-            .add_before::<AssetPlugin, _>(EmbeddedAssetPlugin),
     )
+    //.add_plugin(AssetPlugin{
+    //    asset_folder: "assets\\game\\embedded".to_string(),
+    //    watch_for_changes: true,
+    //})
     .add_plugin(AudioPlugin)
     .add_plugin(NinePatchPlugin::<()>::default())
     .add_plugin(TweeningPlugin)
