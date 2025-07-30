@@ -112,7 +112,7 @@ run_task = 'prepare-release-dir'
 [tasks.compile-web]
 command = 'wasm-pack'
 args = ['build', '--target', 'web']
-#install_crate = { crate_name = 'wasm-pack', test_arg = '--help' }
+install_crate = { crate_name = 'wasm-pack', test_arg = '--help' }
 
 [tasks.distrib-web]
 env = { 'PLATFORM' = 'web' }
