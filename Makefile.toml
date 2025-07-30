@@ -116,8 +116,8 @@ install_crate = { crate_name = 'wasm-pack', test_arg = '--help' }
 
 [tasks.distrib-web]
 env = { 'PLATFORM' = 'web' }
-dependencies = ['prepare-release-dir-web', 'compile-web']
 script_runner = '@duckscript'
+dependencies = ['prepare-release-dir-web', 'compile-web','copy_assets']
 script = '''
 cp pkg/${PROJECT_NAME}_bg.wasm release/${PLATFORM}/${PROJECT_NAME}.wasm
 cp pkg/${PROJECT_NAME}.js release/${PLATFORM}/${PROJECT_NAME}.js
